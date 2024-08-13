@@ -11,3 +11,9 @@ pub struct ContainerResource {
     pub volumes: Vec<String>,
     pub replica: i32,
 }
+
+impl ContainerResource {
+    pub fn as_json_str(&self) -> String {
+        serde_json::to_string(self).unwrap()
+    }
+}
