@@ -1,3 +1,10 @@
+use igniter::api::containers;
+use igniter::config::Config;
+use lazy_static::lazy_static;
+use rocket_okapi::rapidoc::{make_rapidoc, GeneralConfig, HideShowConfig, RapiDocConfig};
+use rocket_okapi::settings::UrlObject;
+use rocket_okapi::swagger_ui::{make_swagger_ui, SwaggerUIConfig};
+use rocket_okapi::{openapi, openapi_get_routes};
 use std::io::{Error as IoError, ErrorKind};
 use std::{
     error::Error,
@@ -6,9 +13,8 @@ use std::{
     time::Duration,
 };
 
-use igniter::config::Config;
-use lazy_static::lazy_static;
-use rocket::{get, launch, routes};
+#[macro_use]
+extern crate rocket;
 
 lazy_static! {
     static ref CONFIG: Config = Config::from_file("config.yaml");
@@ -16,11 +22,37 @@ lazy_static! {
 
 // Default Rocket launch
 #[launch]
-fn rocket() -> _ {
-    rocket::build().mount("/", routes![index])
+async fn rocket() -> _ {
+    let settings = rocket_okapi::settings::OpenApiSettings::new();
+
+    rocket::build()
+        .mount("/v1", openapi_get_routes![index, containers::run_container])
+        .mount(
+            "/swagger-ui/",
+            make_swagger_ui(&SwaggerUIConfig {
+                urls: vec![UrlObject::new("v1", "../v1/openapi.json")],
+                ..Default::default()
+            }),
+        )
+        .mount(
+            "/rapidoc/",
+            make_rapidoc(&RapiDocConfig {
+                general: GeneralConfig {
+                    spec_urls: vec![UrlObject::new("v1", "../v1/openapi.json")],
+                    ..Default::default()
+                },
+                hide_show: HideShowConfig {
+                    allow_spec_url_load: false,
+                    allow_spec_file_load: false,
+                    ..Default::default()
+                },
+                ..Default::default()
+            }),
+        )
 }
 
 // This endpoint turns the application on in the port passed in the request
+#[openapi(tag = "port")]
 #[get("/<port>")]
 fn index(port: i32) -> String {
     match start_server(port) {

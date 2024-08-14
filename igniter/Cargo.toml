@@ -8,5 +8,7 @@ edition = "2021"
 [dependencies]
 serde = {version="1.0.163", features=["derive"]}
 serde_yaml = "0.9.21"
-rocket = "=0.5.1"
+rocket = {version = "0.5.0",features = ["json"]}
 lazy_static = "1.4.0"
+bollard = "0.17.0"
+rocket_okapi = {version = "0.8.0",features = ["swagger","rapidoc"]}
