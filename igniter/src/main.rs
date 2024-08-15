@@ -26,7 +26,14 @@ async fn rocket() -> _ {
     let settings = rocket_okapi::settings::OpenApiSettings::new();
 
     rocket::build()
-        .mount("/v1", openapi_get_routes![index, containers::run_container])
+        .mount(
+            "/v1",
+            openapi_get_routes![
+                index,
+                containers::run_container,
+                containers::inspect_container
+            ],
+        )
         .mount(
             "/swagger-ui/",
             make_swagger_ui(&SwaggerUIConfig {
