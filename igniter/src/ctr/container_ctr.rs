@@ -1,14 +1,12 @@
 use bollard::{
     container::{Config, CreateContainerOptions, InspectContainerOptions, StartContainerOptions},
-    secret::{ContainerCreateResponse, ContainerInspectResponse},
     Docker,
 };
-use rocket::data::N;
 
 use crate::container::*;
 
 /// run docker container
-pub async fn run_container(command: RunContainerCommand) -> Result<String, String> {
+pub async fn run_container(command: RunContainerCommand) -> Result<RunContainerResult, String> {
     let docker = Docker::connect_with_socket_defaults().unwrap();
     docker.ping().await.unwrap();
     let options = Some(CreateContainerOptions {
@@ -31,7 +29,7 @@ pub async fn run_container(command: RunContainerCommand) -> Result<String, Strin
                 .await;
             match start_result {
                 Err(e) => Err(e.to_string()),
-                Ok(()) => Ok(v.id),
+                Ok(()) => Ok(RunContainerResult { id: v.id }),
             }
         }
     }

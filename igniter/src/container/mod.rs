@@ -9,6 +9,11 @@ pub struct RunContainerCommand {
 }
 
 #[derive(Debug, Deserialize, Serialize, JsonSchema)]
+pub struct RunContainerResult {
+    pub id: String,
+}
+
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
 pub struct InspectContainerCommand {
     pub name: String,
 }
