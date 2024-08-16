@@ -45,7 +45,7 @@ impl<T: Serialize + JsonSchema> std::fmt::Display for IgniterApiResult<T> {
 }
 
 impl<'r, T: Serialize + JsonSchema> Responder<'r, 'static> for IgniterApiResult<T> {
-    fn respond_to(self, request: &'r rocket::Request<'_>) -> response::Result<'static> {
+    fn respond_to(self, _request: &'r rocket::Request<'_>) -> response::Result<'static> {
         let body = serde::json::to_string(&self).unwrap();
         Response::build()
             .status(Status::Ok)
@@ -57,7 +57,7 @@ impl<'r, T: Serialize + JsonSchema> Responder<'r, 'static> for IgniterApiResult<
 
 impl<T: Serialize + JsonSchema> OpenApiResponderInner for IgniterApiResult<T> {
     fn responses(
-        gen: &mut rocket_okapi::r#gen::OpenApiGenerator,
+        _gen: &mut rocket_okapi::r#gen::OpenApiGenerator,
     ) -> rocket_okapi::Result<rocket_okapi::okapi::openapi3::Responses> {
         use rocket_okapi::util::add_schema_response;
         let mut responses = Responses::default();

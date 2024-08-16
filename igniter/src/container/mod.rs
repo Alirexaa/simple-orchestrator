@@ -1,81 +1,12 @@
+pub mod inspect;
+pub mod run;
+pub mod stats;
+
+use std::collections::HashMap;
+
 use rocket_okapi::okapi::schemars;
 use rocket_okapi::okapi::schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Deserialize, Serialize, JsonSchema)]
-pub struct RunContainerCommand {
-    pub name: String,
-    pub image: String,
-}
-
-#[derive(Debug, Deserialize, Serialize, JsonSchema)]
-pub struct RunContainerResult {
-    pub id: String,
-}
-
-#[derive(Debug, Deserialize, Serialize, JsonSchema)]
-pub struct InspectContainerCommand {
-    pub name: String,
-}
-
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
-pub struct InspectContainerResult {
-    /// The ID of the container
-    pub id: Option<String>,
-
-    /// The time the container was created
-    pub created: Option<String>,
-
-    /// The path to the command being run
-    pub path: Option<String>,
-
-    /// The arguments to the command being run
-    pub args: Option<Vec<String>>,
-
-    pub state: Option<ContainerState>,
-
-    /// The container's image ID
-    pub image: Option<String>,
-
-    pub resolv_conf_path: Option<String>,
-
-    pub hostname_path: Option<String>,
-
-    pub hosts_path: Option<String>,
-
-    pub log_path: Option<String>,
-
-    pub name: Option<String>,
-
-    pub restart_count: Option<i64>,
-
-    pub driver: Option<String>,
-
-    pub platform: Option<String>,
-
-    pub mount_label: Option<String>,
-
-    pub process_label: Option<String>,
-
-    pub app_armor_profile: Option<String>,
-
-    /// IDs of exec instances that are running in the container.
-    pub exec_ids: Option<Vec<String>>,
-
-    // pub host_config: Option<HostConfig>,
-
-    // pub graph_driver: Option<GraphDriverData>,
-    /// The size of files that have been created or changed by this container.
-    pub size_rw: Option<i64>,
-
-    /// The total size of all the files in this container.
-    pub size_root_fs: Option<i64>,
-    // pub mounts: Option<Vec<MountPoint>>,
-
-    // pub config: Option<ContainerConfig>,
-
-    // pub network_settings: Option<NetworkSettings>,
-}
 
 /// ContainerState stores container's running state. It's part of ContainerJSONBase and will be returned by the \"inspect\" command.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -135,7 +66,7 @@ pub enum ContainerStateStatusEnum {
     #[serde(rename = "dead")]
     DEAD,
     #[serde(rename = "unknown")]
-    UNKHOWN,
+    UNKNOWN,
 }
 
 impl ::std::fmt::Display for ContainerStateStatusEnum {
@@ -185,4 +116,216 @@ impl ::std::convert::AsRef<str> for ContainerStateStatusEnum {
             _ => "unkhown",
         }
     }
+}
+
+/// Statistics for the container.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[allow(missing_docs)]
+pub struct ContainerStats {
+    pub read: String,
+    pub preread: String,
+    pub num_procs: u32,
+    pub pids_stats: PidsStats,
+    pub network: Option<NetworkStats>,
+    pub networks: Option<HashMap<String, NetworkStats>>,
+    pub memory_stats: MemoryStats,
+    pub blkio_stats: BlkioStats,
+    pub cpu_stats: CPUStats,
+    pub precpu_stats: CPUStats,
+    pub storage_stats: StorageStats,
+    // #[serde(default = "empty_string")]
+    pub name: String,
+    pub id: String,
+}
+
+/// Process ID statistics for the container.
+#[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
+#[allow(missing_docs)]
+pub struct PidsStats {
+    pub current: Option<u64>,
+    pub limit: Option<u64>,
+}
+
+/// General memory statistics for the container.
+#[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
+#[allow(missing_docs)]
+pub struct MemoryStats {
+    pub stats: Option<MemoryStatsStats>,
+    pub max_usage: Option<u64>,
+    pub usage: Option<u64>,
+    pub failcnt: Option<u64>,
+    pub limit: Option<u64>,
+    pub commit: Option<u64>,
+    pub commit_peak: Option<u64>,
+    pub commitbytes: Option<u64>,
+    pub commitpeakbytes: Option<u64>,
+    pub privateworkingset: Option<u64>,
+}
+
+/// Granular memory statistics for the container.
+#[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
+#[allow(missing_docs)]
+#[serde(untagged)]
+pub enum MemoryStatsStats {
+    V1(MemoryStatsStatsV1),
+    V2(MemoryStatsStatsV2),
+}
+
+/// Granular memory statistics for the container, v1 cgroups.
+///
+/// Exposed in the docker library [here](https://github.com/moby/moby/blob/40d9e2aff130b42ba0f83d5238b9b53184c8ab3b/daemon/daemon_unix.go#L1436).
+#[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
+#[allow(missing_docs)]
+#[serde(deny_unknown_fields)]
+pub struct MemoryStatsStatsV1 {
+    pub cache: u64,
+    pub dirty: u64,
+    pub mapped_file: u64,
+    pub total_inactive_file: u64,
+    pub pgpgout: u64,
+    pub rss: u64,
+    pub total_mapped_file: u64,
+    pub writeback: u64,
+    pub unevictable: u64,
+    pub pgpgin: u64,
+    pub total_unevictable: u64,
+    pub pgmajfault: u64,
+    pub total_rss: u64,
+    pub total_rss_huge: u64,
+    pub total_writeback: u64,
+    pub total_inactive_anon: u64,
+    pub rss_huge: u64,
+    pub hierarchical_memory_limit: u64,
+    pub total_pgfault: u64,
+    pub total_active_file: u64,
+    pub active_anon: u64,
+    pub total_active_anon: u64,
+    pub total_pgpgout: u64,
+    pub total_cache: u64,
+    pub total_dirty: u64,
+    pub inactive_anon: u64,
+    pub active_file: u64,
+    pub pgfault: u64,
+    pub inactive_file: u64,
+    pub total_pgmajfault: u64,
+    pub total_pgpgin: u64,
+    pub hierarchical_memsw_limit: Option<u64>, // only on OSX
+    pub shmem: Option<u64>,                    // only on linux kernel > 4.15.0-1106
+    pub total_shmem: Option<u64>,              // only on linux kernel > 4.15.0-1106
+}
+
+/// Granular memory statistics for the container, v2 cgroups.
+///
+/// Exposed in the docker library [here](https://github.com/moby/moby/blob/40d9e2aff130b42ba0f83d5238b9b53184c8ab3b/daemon/daemon_unix.go#L1542).
+#[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
+#[allow(missing_docs)]
+#[serde(deny_unknown_fields)]
+pub struct MemoryStatsStatsV2 {
+    pub anon: u64,
+    pub file: u64,
+    pub kernel_stack: u64,
+    pub slab: u64,
+    pub sock: u64,
+    pub shmem: u64,
+    pub file_mapped: u64,
+    pub file_dirty: u64,
+    pub file_writeback: u64,
+    pub anon_thp: u64,
+    pub inactive_anon: u64,
+    pub active_anon: u64,
+    pub inactive_file: u64,
+    pub active_file: u64,
+    pub unevictable: u64,
+    pub slab_reclaimable: u64,
+    pub slab_unreclaimable: u64,
+    pub pgfault: u64,
+    pub pgmajfault: u64,
+    pub workingset_refault: u64,
+    pub workingset_activate: u64,
+    pub workingset_nodereclaim: u64,
+    pub pgrefill: u64,
+    pub pgscan: u64,
+    pub pgsteal: u64,
+    pub pgactivate: u64,
+    pub pgdeactivate: u64,
+    pub pglazyfree: u64,
+    pub pglazyfreed: u64,
+    pub thp_fault_alloc: u64,
+    pub thp_collapse_alloc: u64,
+}
+
+/// I/O statistics for the container.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[allow(missing_docs)]
+pub struct BlkioStats {
+    pub io_service_bytes_recursive: Option<Vec<BlkioStatsEntry>>,
+    pub io_serviced_recursive: Option<Vec<BlkioStatsEntry>>,
+    pub io_queue_recursive: Option<Vec<BlkioStatsEntry>>,
+    pub io_service_time_recursive: Option<Vec<BlkioStatsEntry>>,
+    pub io_wait_time_recursive: Option<Vec<BlkioStatsEntry>>,
+    pub io_merged_recursive: Option<Vec<BlkioStatsEntry>>,
+    pub io_time_recursive: Option<Vec<BlkioStatsEntry>>,
+    pub sectors_recursive: Option<Vec<BlkioStatsEntry>>,
+}
+
+/// Network statistics for the container.
+#[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
+#[allow(missing_docs)]
+pub struct NetworkStats {
+    pub rx_dropped: u64,
+    pub rx_bytes: u64,
+    pub rx_errors: u64,
+    pub tx_packets: u64,
+    pub tx_dropped: u64,
+    pub rx_packets: u64,
+    pub tx_errors: u64,
+    pub tx_bytes: u64,
+}
+
+/// CPU usage statistics for the container.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[allow(missing_docs)]
+pub struct CPUUsage {
+    pub percpu_usage: Option<Vec<u64>>,
+    pub usage_in_usermode: u64,
+    pub total_usage: u64,
+    pub usage_in_kernelmode: u64,
+}
+
+/// CPU throttling statistics.
+#[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
+#[allow(missing_docs)]
+pub struct ThrottlingData {
+    pub periods: u64,
+    pub throttled_periods: u64,
+    pub throttled_time: u64,
+}
+
+/// General CPU statistics for the container.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[allow(missing_docs)]
+pub struct CPUStats {
+    pub cpu_usage: CPUUsage,
+    pub system_cpu_usage: Option<u64>,
+    pub online_cpus: Option<u64>,
+    pub throttling_data: ThrottlingData,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[allow(missing_docs)]
+pub struct BlkioStatsEntry {
+    pub major: u64,
+    pub minor: u64,
+    pub op: String,
+    pub value: u64,
+}
+
+/// File I/O statistics for the container.
+#[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
+#[allow(missing_docs)]
+pub struct StorageStats {
+    pub read_count_normalized: Option<u64>,
+    pub read_size_bytes: Option<u64>,
+    pub write_count_normalized: Option<u64>,
+    pub write_size_bytes: Option<u64>,
 }

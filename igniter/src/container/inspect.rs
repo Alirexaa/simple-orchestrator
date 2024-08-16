@@ -1,38 +1,72 @@
-use bollard::{
-    container::{Config, CreateContainerOptions, InspectContainerOptions, StartContainerOptions},
-    Docker,
-};
+use bollard::{container::InspectContainerOptions, Docker};
+use rocket_okapi::okapi::schemars;
+use rocket_okapi::okapi::schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 
-use crate::container::*;
+use super::{ContainerState, ContainerStateStatusEnum};
 
-/// run docker container
-pub async fn run_container(command: RunContainerCommand) -> Result<RunContainerResult, String> {
-    let docker = Docker::connect_with_socket_defaults().unwrap();
-    docker.ping().await.unwrap();
-    let options = Some(CreateContainerOptions {
-        name: &command.name,
-        platform: None,
-    });
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
+pub struct InspectContainerResult {
+    /// The ID of the container
+    pub id: Option<String>,
 
-    let config = Config {
-        image: Some(command.image),
-        cmd: Some(vec![]),
-        ..Default::default()
-    };
+    /// The time the container was created
+    pub created: Option<String>,
 
-    let create_result = docker.create_container(options, config).await;
-    match create_result {
-        Err(e) => return Err(e.to_string()),
-        Ok(v) => {
-            let start_result = docker
-                .start_container(&command.name, None::<StartContainerOptions<String>>)
-                .await;
-            match start_result {
-                Err(e) => Err(e.to_string()),
-                Ok(()) => Ok(RunContainerResult { id: v.id }),
-            }
-        }
-    }
+    /// The path to the command being run
+    pub path: Option<String>,
+
+    /// The arguments to the command being run
+    pub args: Option<Vec<String>>,
+
+    pub state: Option<ContainerState>,
+
+    /// The container's image ID
+    pub image: Option<String>,
+
+    pub resolv_conf_path: Option<String>,
+
+    pub hostname_path: Option<String>,
+
+    pub hosts_path: Option<String>,
+
+    pub log_path: Option<String>,
+
+    pub name: Option<String>,
+
+    pub restart_count: Option<i64>,
+
+    pub driver: Option<String>,
+
+    pub platform: Option<String>,
+
+    pub mount_label: Option<String>,
+
+    pub process_label: Option<String>,
+
+    pub app_armor_profile: Option<String>,
+
+    /// IDs of exec instances that are running in the container.
+    pub exec_ids: Option<Vec<String>>,
+
+    // pub host_config: Option<HostConfig>,
+
+    // pub graph_driver: Option<GraphDriverData>,
+    /// The size of files that have been created or changed by this container.
+    pub size_rw: Option<i64>,
+
+    /// The total size of all the files in this container.
+    pub size_root_fs: Option<i64>,
+    // pub mounts: Option<Vec<MountPoint>>,
+
+    // pub config: Option<ContainerConfig>,
+
+    // pub network_settings: Option<NetworkSettings>,
+}
+
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+pub struct InspectContainerCommand {
+    pub name: String,
 }
 
 /// inspect docker container
@@ -109,7 +143,6 @@ pub async fn inspect_container(
                                 bollard::secret::ContainerStateStatusEnum::RUNNING => {
                                     Some(ContainerStateStatusEnum::RUNNING)
                                 }
-                                _ => Some(ContainerStateStatusEnum::UNKHOWN),
                             },
                         },
                     }),
